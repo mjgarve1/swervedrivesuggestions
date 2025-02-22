@@ -20,6 +20,13 @@ public class SwerveJoystickCmd extends Command {
   private final Supplier<Double> xSpdFunction, ySpdFunction, turningSpdFunction;
   private final Supplier<Boolean> fieldOrientedFunction;
   private final SlewRateLimiter xLimiter, yLimiter, turningLimiter;
+  //See my comments in RobotContainer.java around this change.
+  private boolean bFieldOrientedControl, bPrevFieldOrientedFunction;
+  //              ^ This is what I mean by self documenting, the "b" at the beginning means this variable is a boolean, so while you are looking through the code it is immediately clear that this is a boolean variable, then the rest of the variable name is descriptive about what it is used for.
+  //                "d" means double
+  //                "b" means boolean
+  //                "f" means float... etc...
+  //                A variable that is a more complicated class would not have a leading indicator, meaning it does something more complicated and you should rely on the name of the variable to clarify what it is.
   public SwerveJoystickCmd(SwerveSubsystem swerveSubsystem,
   Supplier<Double> xSpdFunction, Supplier<Double> ySpdFunction, Supplier<Double> turningSpdFunction,
   Supplier<Boolean> fieldOrientedFunction) {
@@ -28,7 +35,11 @@ public class SwerveJoystickCmd extends Command {
         this.xSpdFunction = xSpdFunction;
         this.ySpdFunction = ySpdFunction;
         this.turningSpdFunction = turningSpdFunction;
+        //See my comments in RobotContainer.java around this change.
         this.fieldOrientedFunction = fieldOrientedFunction;
+        this.bPrevFieldOrientedFunction = fieldOrientedFunction.get();
+        //default to field oriented control
+        this.bFieldOrientedControl = true;
         this.xLimiter = new SlewRateLimiter(DriveConstants.kTeleDriveMaxAccelerationUnitsPerSecond);
         this.yLimiter = new SlewRateLimiter(DriveConstants.kTeleDriveMaxAccelerationUnitsPerSecond);
         this.turningLimiter = new SlewRateLimiter(DriveConstants.kTeleDriveMaxAngularAccelerationUnitsPerSecond);
@@ -60,7 +71,21 @@ public class SwerveJoystickCmd extends Command {
 
     // 4. Construct desired chassis speeds
     ChassisSpeeds chassisSpeeds;
-    if (fieldOrientedFunction.get()) {
+    
+  //See my comments in RobotContainer.java around this change.
+  //If the fieldOrientedFunction button is no longer pressed and it was pressed last time this executed
+  //then you know that the user released the button so you can toggle field vs robot oriented control
+    if( !fieldOrientedFunction.get()
+     && bPrevFieldOrientedFunction)
+    {
+      //Toggle field oriented vs robot oriented control
+      bFieldOrientedControl = !bFieldOrientedControl;
+    }
+
+    bPrevFieldOrientedFunction = fieldOrientedFunction.get();
+
+  //Back to your regularly scheduled programming...
+    if (bFieldOrientedControl) {
         // Relative to field
         chassisSpeeds = ChassisSpeeds.fromFieldRelativeSpeeds(
                 xSpeed, ySpeed, turningSpeed, swerveSubsystem.getRotation2d());
